@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>UniAssist AI</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+
+
+<body>
+
+
+<div class="app">
+
+
+    <!-- ================================================= -->
+    <!-- SIDEBAR -->
+    <!-- ================================================= -->
+
+    <aside class="sidebar">
+
+
+        <!-- BRAND -->
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                🎓
+            </div>
+
+            <div>
+
+                <h1>
+                    UniAssist AI
+                </h1>
+
+                <p>
+                    Smart Registration
+                </p>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- PROFILE -->
+
+        <div class="profile-card">
+
+            <div class="profile-avatar">
+                S
+            </div>
+
+            <div>
+
+                <h3>
+                    Snigdha
+                </h3>
+
+                <p>
+                    AIML Student
+                </p>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- NAVIGATION -->
+
+        <div class="navigation">
+
+
+            <!-- AI ASSISTANT -->
+
+            <div class="nav-item active"
+                 onclick="window.location.href='/'">
+
+                <span>
+                    🤖
+                </span>
+
+                <span>
+                    AI Assistant
+                </span>
+
+            </div>
+
+
+
+            <!-- NEED HELP -->
+
+            <div class="nav-item"
+                 onclick="showMessage('assistant')">
+
+                <span>
+                    💡
+                </span>
+
+                <span>
+                    Need help?
+                </span>
+
+            </div>
+
+
+
+            <!-- COURSES -->
+
+            <div class="nav-item"
+                 onclick="showMessage('courses')">
+
+                <span>
+                    📚
+                </span>
+
+                <span>
+                    Courses
+                </span>
+
+            </div>
+
+
+
+            <!-- REGISTRATIONS -->
+
+            <div class="nav-item"
+                 onclick="window.location.href='/registrations'">
+
+                <span>
+                    📋
+                </span>
+
+                <span>
+                    Registrations
+                </span>
+
+            </div>
+
+
+
+            <!-- CHAT HISTORY -->
+
+            <div class="nav-item"
+                 onclick="window.location.href='/history'">
+
+                <span>
+                    📜
+                </span>
+
+                <span>
+                    Chat History
+                </span>
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- ONLINE STATUS -->
+
+        <div class="online-status">
+
+            <span class="online-dot">
+                ●
+            </span>
+
+            AI Assistant Online
+
+        </div>
+
+
+    </aside>
+
+
+
+    <!-- ================================================= -->
+    <!-- MAIN CONTENT -->
+    <!-- ================================================= -->
+
+    <main class="main-content">
+
+
+        <!-- ================================================= -->
+        <!-- WELCOME BANNER -->
+        <!-- ================================================= -->
+
+        <section class="welcome-banner">
+
+
+            <div class="welcome-text">
+
+                <p class="small-heading">
+                    👋 Welcome back!
+                </p>
+
+                <h1>
+                    Hello, Snigdha!
+                </h1>
+
+                <p>
+                    I'm your AI-powered registration assistant.
+                    How can I help you today?
+                </p>
+
+            </div>
+
+
+            <div class="robot">
+
+                🤖
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- ================================================= -->
+        <!-- DASHBOARD -->
+        <!-- ================================================= -->
+
+        <section class="dashboard-section">
+
+
+            <h2>
+                📊 Dashboard
+            </h2>
+
+
+            <div class="dashboard-cards">
+
+
+                <!-- STUDENTS -->
+
+                <div class="dashboard-card">
+
+                    <div class="dashboard-icon">
+                        👨‍🎓
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            {{ total_students }}
+                        </h3>
+
+                        <p>
+                            Total Students
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- COURSES -->
+
+                <div class="dashboard-card">
+
+                    <div class="dashboard-icon">
+                        📚
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            {{ total_courses }}
+                        </h3>
+
+                        <p>
+                            Available Courses
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- REGISTRATIONS -->
+
+                <div class="dashboard-card">
+
+                    <div class="dashboard-icon">
+                        📝
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            {{ total_registrations }}
+                        </h3>
+
+                        <p>
+                            Registrations
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- ================================================= -->
+        <!-- QUICK ACTIONS -->
+        <!-- ================================================= -->
+
+        <section class="quick-section">
+
+
+            <h2>
+                Quick Actions
+            </h2>
+
+
+            <div class="action-grid">
+
+
+                <!-- FIND COURSES -->
+
+                <div class="action-card"
+                     onclick="showMessage('courses')">
+
+
+                    <div class="card-icon purple">
+                        📚
+                    </div>
+
+
+                    <div>
+
+                        <h3>
+                            Find Courses
+                        </h3>
+
+                        <p>
+                            Explore available courses
+                        </p>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- ELIGIBILITY -->
+
+                <div class="action-card"
+                     onclick="showMessage('eligibility')">
+
+
+                    <div class="card-icon blue">
+                        🎯
+                    </div>
+
+
+                    <div>
+
+                        <h3>
+                            Check Eligibility
+                        </h3>
+
+                        <p>
+                            Check internship eligibility
+                        </p>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- REGISTRATION -->
+
+                <div class="action-card"
+                     onclick="startRegistration()">
+
+
+                    <div class="card-icon orange">
+                        📝
+                    </div>
+
+
+                    <div>
+
+                        <h3>
+                            Registration Guide
+                        </h3>
+
+                        <p>
+                            Start your registration
+                        </p>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- ASK AI -->
+
+                <div class="action-card"
+                     onclick="showMessage('assistant')">
+
+
+                    <div class="card-icon pink">
+                        🤖
+                    </div>
+
+
+                    <div>
+
+                        <h3>
+                            Ask AI Assistant
+                        </h3>
+
+                        <p>
+                            Ask me anything
+                        </p>
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- ================================================= -->
+        <!-- CHAT SECTION -->
+        <!-- ================================================= -->
+
+        <section class="chat-section">
+
+
+            <div class="chat-header">
+
+                <div class="chat-title">
+
+                    <div class="chat-avatar">
+                        🤖
+                    </div>
+
+                    <div>
+
+                        <h2>
+                            AI Assistant
+                        </h2>
+
+                        <p>
+                            Online • Ready to help
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    class="history-button"
+                    onclick="window.location.href='/history'">
+
+                    📜 History
+
+                </button>
+
+
+            </div>
+
+
+
+            <!-- CHAT BOX -->
+
+            <div id="chatBox"
+                 class="chat-box">
+
+
+                <!-- DEFAULT AI MESSAGE -->
+
+                <div class="bot-message">
+
+
+                    <div class="message-avatar">
+                        🤖
+                    </div>
+
+
+                    <div class="message-bubble">
+
+                        <b>
+                            AI Assistant
+                        </b>
+
+                        <p>
+                            Hello Snigdha! 👋
+                            I'm UniAssist AI.
+                            How can I help you today?
+                        </p>
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- MESSAGE INPUT -->
+
+            <div class="chat-input-area">
+
+
+                <input
+                    type="text"
+                    id="message"
+                    placeholder="Type your message here..."
+                    onkeypress="handleKeyPress(event)"
+                >
+
+
+                <button
+                    onclick="sendMessage()">
+
+                    Send 🚀
+
+                </button>
+
+
+            </div>
+
+
+        </section>
+
+
+    </main>
+
+
+</div>
+
+
+
+<!-- ================================================= -->
+<!-- JAVASCRIPT -->
+<!-- ================================================= -->
+
+<script>
+
+
+// =====================================================
+// ENTER KEY
+// =====================================================
+
+function handleKeyPress(event) {
+
+    if (event.key === "Enter") {
+
+        sendMessage();
+
+    }
+
+}
+
+
+
+// =====================================================
+// SEND MESSAGE
+// =====================================================
+
+async function sendMessage() {
+
+
+    const input =
+        document.getElementById("message");
+
+
+    const chatBox =
+        document.getElementById("chatBox");
+
+
+    const message =
+        input.value.trim();
+
+
+    if (message === "") {
+
+        return;
+
+    }
+
+
+
+    // =================================================
+    // SHOW USER MESSAGE
+    // =================================================
+
+    chatBox.innerHTML += `
+
+        <div class="user-message">
+
+            <div class="message-avatar">
+                👤
+            </div>
+
+            <div class="message-bubble">
+
+                <b>
+                    You
+                </b>
+
+                <p>
+                    ${message}
+                </p>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+
+    // Clear input
+
+    input.value = "";
+
+
+
+    // =================================================
+    // SHOW THINKING MESSAGE
+    // =================================================
+
+    chatBox.innerHTML += `
+
+        <div id="thinkingMessage"
+             class="bot-message">
+
+            <div class="message-avatar">
+                🤖
+            </div>
+
+            <div class="message-bubble">
+
+                <b>
+                    AI Assistant
+                </b>
+
+                <p>
+                    Thinking... 🤔
+                </p>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+
+    chatBox.scrollTop =
+        chatBox.scrollHeight;
+
+
+
+    // =================================================
+    // SEND TO FLASK
+    // =================================================
+
+    try {
+
+
+        const response =
+            await fetch(
+                "/chat",
+                {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        message: message
+                    })
+
+                }
+            );
+
+
+
+        const data =
+            await response.json();
+
+
+
+        // Remove thinking message
+
+        const thinking =
+            document.getElementById(
+                "thinkingMessage"
+            );
+
+
+        if (thinking) {
+
+            thinking.remove();
+
+        }
+
+
+
+        // =================================================
+        // SHOW AI RESPONSE
+        // =================================================
+
+        chatBox.innerHTML += `
+
+            <div class="bot-message">
+
+                <div class="message-avatar">
+                    🤖
+                </div>
+
+                <div class="message-bubble">
+
+                    <b>
+                        AI Assistant
+                    </b>
+
+                    <p>
+                        ${data.response}
+                    </p>
+
+                </div>
+
+            </div>
+
+        `;
+
+
+
+        chatBox.scrollTop =
+            chatBox.scrollHeight;
+
+
+    }
+
+    catch (error) {
+
+
+        console.log(error);
+
+
+        const thinking =
+            document.getElementById(
+                "thinkingMessage"
+            );
+
+
+        if (thinking) {
+
+            thinking.remove();
+
+        }
+
+
+        chatBox.innerHTML += `
+
+            <div class="bot-message">
+
+                <div class="message-avatar">
+                    🤖
+                </div>
+
+                <div class="message-bubble">
+
+                    <b>
+                        AI Assistant
+                    </b>
+
+                    <p>
+                        ⚠️ Sorry, I could not
+                        connect to the AI.
+                        Please make sure
+                        Ollama is running.
+                    </p>
+
+                </div>
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+
+
+// =====================================================
+// QUICK ACTIONS
+// =====================================================
+
+function showMessage(type) {
+
+
+    const input =
+        document.getElementById("message");
+
+
+
+    if (type === "courses") {
+
+
+        input.value =
+            "Show me available courses";
+
+
+    }
+
+
+    else if (type === "eligibility") {
+
+
+        input.value =
+            "Check my eligibility";
+
+
+    }
+
+
+    else if (type === "assistant") {
+
+
+        input.value =
+            "I need help";
+
+
+    }
+
+
+    else if (type === "registration") {
+
+
+        input.value =
+            "I want to register";
+
+
+    }
+
+
+
+    sendMessage();
+
+}
+
+
+
+// =====================================================
+// START REGISTRATION
+// =====================================================
+
+function startRegistration() {
+
+
+    const input =
+        document.getElementById("message");
+
+
+    input.value =
+        "I want to register";
+
+
+    sendMessage();
+
+}
+
+
+</script>
+
+
+</body>
+
+</html>

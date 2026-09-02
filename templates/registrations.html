@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Registrations - UniAssist AI</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f3ff;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        h1 {
+            color: #6c2bd9;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .registration-card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(108, 43, 217, 0.12);
+            border-left: 6px solid #7b2ff7;
+        }
+
+        .registration-card h2 {
+            color: #6c2bd9;
+            margin-top: 0;
+        }
+
+        .info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .info-box {
+            background: #f8f6ff;
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #6c2bd9;
+        }
+
+        .value {
+            color: #333;
+            margin-top: 5px;
+        }
+
+        .back-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #7b2ff7, #f107a3);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            margin-bottom: 25px;
+        }
+
+        .empty {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            color: #666;
+        }
+
+        @media (max-width: 700px) {
+            .info {
+                grid-template-columns: 1fr;
+            }
+
+            body {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <a href="/" class="back-button">← Back to AI Assistant</a>
+
+    <h1>📋 Student Registrations</h1>
+
+    <p class="subtitle">
+        View all registrations saved in UniAssist AI.
+    </p>
+
+    {% if registrations %}
+
+        {% for registration in registrations %}
+
+        <div class="registration-card">
+
+            <h2>🎓 Registration {{ loop.index }}</h2>
+
+            <div class="info">
+
+                <div class="info-box">
+                    <div class="label">👤 Name</div>
+                    <div class="value">
+                        {{ registration.name }}
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <div class="label">📧 Email</div>
+                    <div class="value">
+                        {{ registration.email }}
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <div class="label">📱 Phone</div>
+                    <div class="value">
+                        {{ registration.phone }}
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <div class="label">🎓 College / University</div>
+                    <div class="value">
+                        {{ registration.college }}
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <div class="label">📚 Course</div>
+                    <div class="value">
+                        {{ registration.course }}
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    {% else %}
+
+        <div class="empty">
+            <h2>📭 No registrations yet</h2>
+            <p>Complete a registration through the AI Assistant.</p>
+        </div>
+
+    {% endif %}
+
+</div>
+
+</body>
+</html>

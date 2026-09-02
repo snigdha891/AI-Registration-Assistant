@@ -1,0 +1,37 @@
+[
+    {
+        "name": "harini",
+        "email": "harini2007@gmail.com",
+        "phone": "9567689043",
+        "college": "lpu",
+        "course": "data science"
+    },
+    {
+        "name": "courses",
+        "email": "snigadha2006@gmail.com",
+        "phone": "738689607",
+        "college": "chandigarh university",
+        "course": "aiml"
+    },
+    {
+        "name": "renu",
+        "email": "renu400@gmail.com",
+        "phone": "9087567895",
+        "college": "chandigarh university",
+        "course": "hi"
+    },
+    {
+        "name": "snigdha",
+        "email": "snigdhaveeragandham2006@gmail.com",
+        "phone": "7386896097",
+        "college": "chandigarh university",
+        "course": "Data Science"
+    },
+    {
+        "name": "snigdha",
+        "email": "snigdhaveeragandham2006@gmail.com",
+        "phone": "7386896097",
+        "college": "chandigarh university",
+        "course": "Python Programming"
+    }
+]
