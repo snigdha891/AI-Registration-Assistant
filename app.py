@@ -1,13 +1,40 @@
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, redirect
+from flask_cors import CORS
 import json
 import os
 import re
+import uuid
 import ollama
+
+# =========================================================
+# APP CONFIGURATION
+# =========================================================
 
 app = Flask(__name__)
 
-app.secret_key = "uniassist-secret-key"
+app.secret_key = "uniassist-secret-key-change-this"
 
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+CORS(
+    app,
+    supports_credentials=True,
+    origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5000",
+        "http://127.0.0.1:5000"
+    ]
+)
+
+# =========================================================
+# ADMIN LOGIN
+# =========================================================
+
+# ONLY YOU KNOW THESE DETAILS
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "admin123"
 
 # =========================================================
 # COURSES
@@ -20,67 +47,270 @@ COURSES = [
     "Web Development"
 ]
 
+# =========================================================
+# DATA FILES
+# =========================================================
+
+DATA_FOLDER = "data"
+
+REGISTRATION_FILE = os.path.join(
+    DATA_FOLDER,
+    "registrations.json"
+)
+
+CHAT_HISTORY_FILE = os.path.join(
+    DATA_FOLDER,
+    "chat_history.json"
+)
+
+os.makedirs(DATA_FOLDER, exist_ok=True)
 
 # =========================================================
 # AI INSTRUCTIONS
 # =========================================================
 
 AI_INSTRUCTIONS = """
-You are UniAssist AI, a friendly student registration and
-internship assistant.
+You are UniAssist AI, a friendly educational assistant.
 
-You help students with:
+You can help students with:
 
-- Courses
-- Data Science
 - Artificial Intelligence
 - Machine Learning
+- Data Science
 - Python
 - Web Development
+- Programming
+- Courses
+- Student registration
 - Eligibility
-- Required documents
-- Internship information
-- Registration guidance
+- Internships
+- College-related questions
+- Projects
 - General educational questions
 
-Behave like a helpful conversational AI.
+Available UniAssist courses:
+
+1. AI & Machine Learning
+2. Data Science
+3. Python Programming
+4. Web Development
 
 IMPORTANT:
 
-1. Understand the complete question.
-2. Answer naturally and clearly.
-3. Do not respond only to keywords.
-4. If the user asks about courses, explain the available courses.
-5. If the user asks about Data Science, explain Data Science.
-6. If the user asks about AI, explain Artificial Intelligence.
-7. If the user asks about Python, explain Python.
-8. If the user asks about Web Development, explain Web Development.
-9. Keep answers beginner-friendly.
-10. Use emojis when appropriate.
-11. Do not pretend registration has been completed.
-12. Do not collect registration information unless registration
-    has explicitly been started.
+Answer the user's actual question.
 
-Available courses:
+Do not respond only with keywords.
 
-- AI & Machine Learning
-- Data Science
-- Python Programming
-- Web Development
+If the user asks about available courses, explain all four
+UniAssist courses.
+
+If the user asks about AI, explain Artificial Intelligence.
+
+If the user asks about Machine Learning, explain Machine Learning.
+
+If the user asks about Python, explain Python.
+
+If the user asks about Data Science, explain Data Science.
+
+If the user asks about Web Development, explain Web Development.
+
+For general questions, answer naturally and helpfully.
+
+Keep answers beginner-friendly.
+
+Do not claim that registration was completed unless the
+registration system actually completed it.
+
+Do not invent personal information.
+
+Use simple explanations and examples when useful.
 """
 
+# =========================================================
+# JSON HELPERS
+# =========================================================
+
+def load_json_file(filename, default):
+
+    if not os.path.exists(filename):
+        return default
+
+    try:
+        with open(
+            filename,
+            "r",
+            encoding="utf-8"
+        ) as file:
+
+            data = json.load(file)
+
+        return data
+
+    except Exception as error:
+
+        print(
+            f"JSON LOAD ERROR ({filename}):",
+            error
+        )
+
+        return default
+
+
+def save_json_file(filename, data):
+
+    try:
+
+        os.makedirs(
+            DATA_FOLDER,
+            exist_ok=True
+        )
+
+        with open(
+            filename,
+            "w",
+            encoding="utf-8"
+        ) as file:
+
+            json.dump(
+                data,
+                file,
+                indent=4,
+                ensure_ascii=False
+            )
+
+        return True
+
+    except Exception as error:
+
+        print(
+            f"JSON SAVE ERROR ({filename}):",
+            error
+        )
+
+        return False
+
 
 # =========================================================
-# FILE LOCATIONS
+# REGISTRATION FUNCTIONS
 # =========================================================
 
-REGISTRATION_FILE = "data/registrations.json"
+def load_registrations():
 
-CHAT_HISTORY_FILE = "data/chat_history.json"
+    data = load_json_file(
+        REGISTRATION_FILE,
+        []
+    )
+
+    if isinstance(data, list):
+        return data
+
+    return []
+
+
+def save_registration():
+
+    registrations = load_registrations()
+
+    registration = {
+        "id": len(registrations) + 1,
+        "name": session.get("name", ""),
+        "email": session.get("email", ""),
+        "phone": session.get("phone", ""),
+        "college": session.get("college", ""),
+        "course": session.get("course", "")
+    }
+
+    registrations.append(registration)
+
+    save_json_file(
+        REGISTRATION_FILE,
+        registrations
+    )
+
+    return registration
 
 
 # =========================================================
-# HOME PAGE
+# USER ID
+# =========================================================
+
+def get_user_id():
+
+    user_id = session.get("user_id")
+
+    if not user_id:
+
+        user_id = str(
+            uuid.uuid4()
+        )
+
+        session["user_id"] = user_id
+
+    return user_id
+
+
+# =========================================================
+# CHAT HISTORY
+# =========================================================
+
+def load_chat_history():
+
+    data = load_json_file(
+        CHAT_HISTORY_FILE,
+        []
+    )
+
+    if isinstance(data, list):
+        return data
+
+    return []
+
+
+def save_chat_message(role, message):
+
+    history = load_chat_history()
+
+    user_id = get_user_id()
+
+    history.append({
+        "user_id": user_id,
+        "role": role,
+        "message": message
+    })
+
+    save_json_file(
+        CHAT_HISTORY_FILE,
+        history
+    )
+
+
+def get_my_chat_history():
+
+    history = load_chat_history()
+
+    user_id = get_user_id()
+
+    return [
+        item
+        for item in history
+        if item.get("user_id") == user_id
+    ]
+
+
+# =========================================================
+# ADMIN CHECK
+# =========================================================
+
+def is_admin():
+
+    return session.get(
+        "is_admin",
+        False
+    ) is True
+
+
+# =========================================================
+# HOME
 # =========================================================
 
 @app.route("/")
@@ -97,162 +327,469 @@ def home():
 
 
 # =========================================================
-# REGISTRATION PAGE
+# ADMIN PAGE
 # =========================================================
 
-@app.route("/registrations")
-def registrations():
-
-    registrations = load_registrations()
+@app.route("/admin")
+def admin_page():
 
     return render_template(
-        "registrations.html",
-        registrations=registrations
+        "index.html"
     )
 
 
 # =========================================================
-# CHAT HISTORY PAGE
+# ADMIN LOGIN
 # =========================================================
 
-@app.route("/history")
-def history():
-
-    chat_history = load_chat_history()
-
-    return render_template(
-        "history.html",
-        history=chat_history
-    )
-
-
-# =========================================================
-# RESET SESSION
-# =========================================================
-
-@app.route("/reset")
-def reset():
-
-    session.clear()
-
-    return """
-    <h2>🔄 Session reset successfully.</h2>
-
-    <p>You can return to UniAssist AI.</p>
-
-    <a href="/">Go to UniAssist AI</a>
-    """
-
-
-# =========================================================
-# LOAD REGISTRATIONS
-# =========================================================
-
-def load_registrations():
-
-    os.makedirs("data", exist_ok=True)
-
-    if not os.path.exists(REGISTRATION_FILE):
-
-        return []
+@app.route(
+    "/admin-login",
+    methods=["POST"]
+)
+@app.route(
+    "/admin/login",
+    methods=["POST"]
+)
+@app.route(
+    "/api/admin/login",
+    methods=["POST"]
+)
+def admin_login():
 
     try:
 
-        with open(REGISTRATION_FILE, "r") as file:
+        data = request.get_json(
+            silent=True
+        )
 
-            registrations = json.load(file)
+        if not data:
 
-            if isinstance(registrations, list):
+            return jsonify({
+                "success": False,
+                "message": "No login data received."
+            }), 400
 
-                return registrations
+        username = str(
+            data.get(
+                "username",
+                ""
+            )
+        ).strip()
+
+        password = str(
+            data.get(
+                "password",
+                ""
+            )
+        )
+
+        print(
+            "ADMIN LOGIN ATTEMPT:",
+            username
+        )
+
+        # ---------------------------------------------
+        # CHECK ADMIN
+        # ---------------------------------------------
+
+        if (
+            username == ADMIN_USERNAME
+            and
+            password == ADMIN_PASSWORD
+        ):
+
+            session["is_admin"] = True
+            session["admin_username"] = username
+
+            # Make sure admin does not become a normal user
+            # for the purpose of displaying student history.
+            session.permanent = True
+
+            print(
+                "ADMIN LOGIN SUCCESS"
+            )
+
+            return jsonify({
+                "success": True,
+                "message": "Admin login successful.",
+                "redirect": "/registrations"
+            })
+
+        print(
+            "ADMIN LOGIN FAILED"
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Invalid admin username or password."
+        }), 401
 
     except Exception as error:
 
-        print("REGISTRATION FILE ERROR:", error)
+        print(
+            "ADMIN LOGIN ERROR:",
+            error
+        )
 
-    return []
+        return jsonify({
+            "success": False,
+            "message": "Server error during admin login."
+        }), 500
 
 
 # =========================================================
-# SAVE REGISTRATION
+# ADMIN STATUS
 # =========================================================
 
-def save_registration():
+@app.route(
+    "/admin-status",
+    methods=["GET"]
+)
+@app.route(
+    "/api/admin/status",
+    methods=["GET"]
+)
+def admin_status():
 
-    os.makedirs("data", exist_ok=True)
+    return jsonify({
+        "is_admin": is_admin(),
+        "logged_in": is_admin(),
+        "username": session.get(
+            "admin_username"
+        )
+    })
 
-    registrations = load_registrations()
 
-    registration = {
+# =========================================================
+# ADMIN LOGOUT
+# =========================================================
+
+@app.route(
+    "/admin-logout",
+    methods=["POST", "GET"]
+)
+def admin_logout():
+
+    session.pop(
+        "is_admin",
+        None
+    )
+
+    session.pop(
+        "admin_username",
+        None
+    )
+
+    return jsonify({
+        "success": True,
+        "message": "Admin logged out."
+    })
+
+
+# =========================================================
+# ADMIN REGISTRATIONS PAGE
+# =========================================================
+
+@app.route(
+    "/registrations"
+)
+def registrations():
+
+    # ---------------------------------------------
+    # IMPORTANT:
+    # NORMAL STUDENTS CANNOT SEE THIS
+    # ---------------------------------------------
+
+    if not is_admin():
+
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Admin Access Only</title>
+
+            <style>
+
+                body {
+                    margin: 0;
+                    font-family: Arial, sans-serif;
+                    background: #f5f0ff;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 100vh;
+                }
+
+                .box {
+                    background: white;
+                    padding: 45px;
+                    border-radius: 20px;
+                    text-align: center;
+                    box-shadow:
+                        0 10px 35px rgba(0,0,0,0.15);
+                    max-width: 500px;
+                }
+
+                h1 {
+                    color: #6d28d9;
+                }
+
+                p {
+                    color: #555;
+                    font-size: 17px;
+                    line-height: 1.5;
+                }
+
+                a {
+                    display: inline-block;
+                    margin-top: 20px;
+                    padding: 13px 25px;
+                    background: #7c3aed;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 10px;
+                }
+
+            </style>
+
+        </head>
+
+        <body>
+
+            <div class="box">
+
+                <h1>🔐 Admin Access Only</h1>
+
+                <p>
+                    Only the project administrator can
+                    view all student registrations.
+                </p>
+
+                <a href="/">
+                    Go Back
+                </a>
+
+            </div>
+
+        </body>
+        </html>
+        """
+
+    registrations_data = load_registrations()
+
+    try:
+
+        return render_template(
+            "registrations.html",
+            registrations=registrations_data
+        )
+
+    except Exception:
+
+        return jsonify({
+            "success": True,
+            "admin": True,
+            "registrations": registrations_data,
+            "total": len(registrations_data)
+        })
+
+
+# =========================================================
+# ADMIN REGISTRATION API
+# =========================================================
+
+@app.route(
+    "/admin/registrations",
+    methods=["GET"]
+)
+@app.route(
+    "/api/registrations",
+    methods=["GET"]
+)
+def admin_registrations():
+
+    if not is_admin():
+
+        return jsonify({
+            "success": False,
+            "message": "Admin access required."
+        }), 403
+
+    registrations_data = load_registrations()
+
+    return jsonify({
+        "success": True,
+        "registrations": registrations_data,
+        "total": len(registrations_data)
+    })
+
+
+# =========================================================
+# MY REGISTRATION
+# =========================================================
+
+@app.route(
+    "/my-registration"
+)
+def my_registration():
+
+    user_id = session.get(
+        "user_id"
+    )
+
+    email = session.get(
+        "email"
+    )
+
+    name = session.get(
+        "name"
+    )
+
+    # ---------------------------------------------
+    # If user has not registered
+    # ---------------------------------------------
+
+    if not email and not name:
+
+        return jsonify({
+            "registered": False,
+            "message": "No registration found."
+        })
+
+    # ---------------------------------------------
+    # Return ONLY this user's information
+    # ---------------------------------------------
+
+    return jsonify({
+        "registered": True,
+        "user_id": user_id,
         "name": session.get("name"),
         "email": session.get("email"),
         "phone": session.get("phone"),
         "college": session.get("college"),
         "course": session.get("course")
-    }
-
-    registrations.append(registration)
-
-    with open(REGISTRATION_FILE, "w") as file:
-
-        json.dump(
-            registrations,
-            file,
-            indent=4
-        )
+    })
 
 
 # =========================================================
-# LOAD CHAT HISTORY
+# USER CHAT HISTORY
 # =========================================================
 
-def load_chat_history():
+@app.route(
+    "/history"
+)
+def history():
 
-    os.makedirs("data", exist_ok=True)
+    # ---------------------------------------------
+    # USER ONLY SEES THEIR OWN HISTORY
+    # ---------------------------------------------
 
-    if not os.path.exists(CHAT_HISTORY_FILE):
-
-        return []
+    my_history = get_my_chat_history()
 
     try:
 
-        with open(CHAT_HISTORY_FILE, "r") as file:
+        return render_template(
+            "history.html",
+            history=my_history
+        )
 
-            history = json.load(file)
+    except Exception:
 
-            if isinstance(history, list):
-
-                return history
-
-    except Exception as error:
-
-        print("CHAT HISTORY FILE ERROR:", error)
-
-    return []
+        return jsonify({
+            "success": True,
+            "history": my_history
+        })
 
 
 # =========================================================
-# SAVE CHAT MESSAGE
+# USER CHAT HISTORY API
 # =========================================================
 
-def save_chat_message(role, message):
+@app.route(
+    "/api/history",
+    methods=["GET"]
+)
+def api_history():
 
-    os.makedirs("data", exist_ok=True)
+    my_history = get_my_chat_history()
+
+    return jsonify({
+        "success": True,
+        "history": my_history
+    })
+
+
+# =========================================================
+# ADMIN CHAT HISTORY
+# =========================================================
+# Admin can see all histories only if you specifically
+# want this feature.
+# =========================================================
+
+@app.route(
+    "/admin/chat-history",
+    methods=["GET"]
+)
+def admin_chat_history():
+
+    if not is_admin():
+
+        return jsonify({
+            "success": False,
+            "message": "Admin access required."
+        }), 403
 
     history = load_chat_history()
 
-    history.append({
-        "role": role,
-        "message": message
+    return jsonify({
+        "success": True,
+        "history": history
     })
 
-    with open(CHAT_HISTORY_FILE, "w") as file:
 
-        json.dump(
-            history,
-            file,
-            indent=4
+# =========================================================
+# CLEAR MY HISTORY
+# =========================================================
+
+@app.route(
+    "/clear-history",
+    methods=["POST"]
+)
+def clear_history():
+
+    try:
+
+        history = load_chat_history()
+
+        user_id = get_user_id()
+
+        new_history = [
+            item
+            for item in history
+            if item.get("user_id") != user_id
+        ]
+
+        save_json_file(
+            CHAT_HISTORY_FILE,
+            new_history
         )
+
+        return jsonify({
+            "success": True,
+            "message": "Your chat history was cleared."
+        })
+
+    except Exception as error:
+
+        print(
+            "CLEAR HISTORY ERROR:",
+            error
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Could not clear chat history."
+        }), 500
 
 
 # =========================================================
@@ -273,8 +810,10 @@ def detect_course(message):
 
     if (
         "machine learning" in text
-        or "artificial intelligence" in text
-        or text == "ai"
+        or
+        "artificial intelligence" in text
+        or
+        text == "ai"
     ):
 
         return "AI & Machine Learning"
@@ -298,7 +837,10 @@ def valid_email(email):
         r"[A-Za-z]{2,}$"
     )
 
-    return re.match(pattern, email) is not None
+    return re.match(
+        pattern,
+        email
+    ) is not None
 
 
 # =========================================================
@@ -317,282 +859,205 @@ def valid_phone(phone):
 
 
 # =========================================================
-# LOCAL AI
+# FAST AI RESPONSE
 # =========================================================
 
 def get_ai_response(message):
 
-    try:
+    text = message.lower().strip()
 
-        old_history = load_chat_history()
+    # =====================================================
+    # FAST COURSE RESPONSE
+    # =====================================================
 
-        recent_history = old_history[-12:]
-
-        messages = [
-            {
-                "role": "system",
-                "content": AI_INSTRUCTIONS
-            }
+    if (
+        "what courses" in text
+        or
+        "which courses" in text
+        or
+        "available courses" in text
+        or
+        "courses available" in text
+        or
+        "list of courses" in text
+        or
+        text in [
+            "courses",
+            "course"
         ]
+    ):
 
-        for item in recent_history:
+        return (
+            "📚 <b>Available UniAssist Courses:</b>"
+            "<br><br>"
 
-            role = item.get("role")
+            "🤖 <b>AI & Machine Learning</b>"
+            "<br>"
+            "Learn Artificial Intelligence, "
+            "Machine Learning and Deep Learning."
+            "<br><br>"
 
-            content = item.get("message")
+            "📊 <b>Data Science</b>"
+            "<br>"
+            "Learn data analysis, statistics, "
+            "visualization and machine learning."
+            "<br><br>"
 
-            if role in ["user", "assistant"]:
+            "🐍 <b>Python Programming</b>"
+            "<br>"
+            "Learn Python programming from basics "
+            "and build useful applications."
+            "<br><br>"
 
-                messages.append({
-                    "role": role,
-                    "content": content
-                })
+            "🌐 <b>Web Development</b>"
+            "<br>"
+            "Learn HTML, CSS, JavaScript and "
+            "web application development."
+            "<br><br>"
 
-        messages.append({
-            "role": "user",
-            "content": message
-        })
-
-        response = ollama.chat(
-            model="llama3.2",
-            messages=messages
+            "😊 <b>Which course would you like "
+            "to know more about?</b>"
         )
 
-        answer = response["message"]["content"]
+    # =====================================================
+    # OLLAMA
+    # =====================================================
 
-        return answer
+    try:
+
+        response = ollama.chat(
+
+            model="qwen2.5:0.5b",
+
+            messages=[
+
+                {
+                    "role": "system",
+                    "content": AI_INSTRUCTIONS
+                },
+
+                {
+                    "role": "user",
+                    "content": message
+                }
+
+            ],
+
+            options={
+
+                "temperature": 0.2,
+
+                "num_predict": 120,
+
+                "num_ctx": 1024,
+
+                "top_k": 20,
+
+                "top_p": 0.8
+
+            }
+
+        )
+
+        answer = response[
+            "message"
+        ][
+            "content"
+        ]
+
+        return answer.strip()
 
     except Exception as error:
 
-        print("OLLAMA ERROR:", error)
+        print(
+            "OLLAMA ERROR:",
+            error
+        )
 
         return (
-            "⚠️ <b>I'm having trouble connecting to my "
-            "local AI model.</b>"
+            "⚠️ <b>Local AI is currently unavailable.</b>"
             "<br><br>"
             "Please make sure Ollama is running."
         )
 
 
 # =========================================================
-# CHAT
+# CHAT API
 # =========================================================
 
-@app.route("/chat", methods=["POST"])
+@app.route(
+    "/chat",
+    methods=["POST"]
+)
+@app.route(
+    "/api/chat",
+    methods=["POST"]
+)
 def chat():
 
-    data = request.get_json()
+    try:
 
-    if not data:
-
-        return jsonify({
-            "response": "🤖 I didn't receive your message."
-        })
-
-
-    message = data.get(
-        "message",
-        ""
-    ).strip()
-
-
-    if not message:
-
-        return jsonify({
-            "response": "😊 Please type something."
-        })
-
-
-    text = message.lower().strip()
-
-
-    # =====================================================
-    # CANCEL REGISTRATION
-    # =====================================================
-
-    if text in [
-        "cancel",
-        "cancel registration",
-        "stop registration",
-        "stop"
-    ]:
-
-        session.pop(
-            "registration_step",
-            None
+        data = request.get_json(
+            silent=True
         )
 
-        save_chat_message(
-            "user",
-            message
-        )
+        if not data:
 
-        response_text = (
-            "❌ <b>Registration cancelled.</b>"
-            "<br><br>"
-            "You can continue chatting with me normally."
-            "<br><br>"
-            "If you want to register later, say "
-            "<b>I want to register</b>."
-        )
+            return jsonify({
+                "response":
+                    "🤖 I didn't receive your message."
+            })
 
-        save_chat_message(
-            "assistant",
-            response_text
-        )
+        message = str(
+            data.get(
+                "message",
+                ""
+            )
+        ).strip()
 
-        return jsonify({
-            "response": response_text
-        })
+        if not message:
 
+            return jsonify({
+                "response":
+                    "😊 Please type something."
+            })
 
-    # =====================================================
-    # START REGISTRATION
-    # =====================================================
+        text = message.lower().strip()
 
-    if (
-        text == "register"
-        or text == "registration"
-        or text == "registration guide"
-        or "i want to register" in text
-        or "start registration" in text
-    ):
+        # ---------------------------------------------
+        # MAKE USER ID
+        # ---------------------------------------------
 
-        session.pop("name", None)
-        session.pop("email", None)
-        session.pop("phone", None)
-        session.pop("college", None)
-        session.pop("course", None)
+        get_user_id()
 
-        session["registration_step"] = "name"
+        # =================================================
+        # CANCEL REGISTRATION
+        # =================================================
 
+        if text in [
+            "cancel",
+            "cancel registration",
+            "stop registration",
+            "stop"
+        ]:
 
-        save_chat_message(
-            "user",
-            message
-        )
+            session.pop(
+                "registration_step",
+                None
+            )
 
-
-        response_text = (
-            "📝 <b>Let's start your registration!</b>"
-            "<br><br>"
-            "What is your full name?"
-        )
-
-
-        save_chat_message(
-            "assistant",
-            response_text
-        )
-
-
-        return jsonify({
-            "response": response_text
-        })
-
-
-    registration_step = session.get(
-        "registration_step"
-    )
-
-
-    # =====================================================
-    # NAME
-    # =====================================================
-
-    if registration_step == "name":
-
-        course = detect_course(message)
-
-        if course:
+            save_chat_message(
+                "user",
+                message
+            )
 
             response_text = (
-                "😊 First I need your <b>full name</b>."
+                "❌ <b>Registration cancelled.</b>"
                 "<br><br>"
-                "Example: <b>Rahul Kumar</b>"
-            )
-
-            save_chat_message(
-                "user",
-                message
-            )
-
-            save_chat_message(
-                "assistant",
-                response_text
-            )
-
-            return jsonify({
-                "response": response_text
-            })
-
-
-        if len(message) < 2:
-
-            response_text = (
-                "😊 Please enter your full name."
-            )
-
-            save_chat_message(
-                "user",
-                message
-            )
-
-            save_chat_message(
-                "assistant",
-                response_text
-            )
-
-            return jsonify({
-                "response": response_text
-            })
-
-
-        session["name"] = message
-
-        session["registration_step"] = "email"
-
-
-        response_text = (
-            f"Nice to meet you, <b>{message}</b>! 😊"
-            "<br><br>"
-            "What is your email address?"
-        )
-
-
-        save_chat_message(
-            "user",
-            message
-        )
-
-        save_chat_message(
-            "assistant",
-            response_text
-        )
-
-
-        return jsonify({
-            "response": response_text
-        })
-
-
-    # =====================================================
-    # EMAIL
-    # =====================================================
-
-    if registration_step == "email":
-
-        if not valid_email(message):
-
-            response_text = (
-                "📧 <b>Please enter a valid email address.</b>"
+                "You can continue chatting with me normally."
                 "<br><br>"
-                "Example: <b>student@gmail.com</b>"
-            )
-
-            save_chat_message(
-                "user",
-                message
+                "If you want to register later, say "
+                "<b>I want to register</b>."
             )
 
             save_chat_message(
@@ -604,47 +1069,57 @@ def chat():
                 "response": response_text
             })
 
+        # =================================================
+        # AVAILABLE COURSES
+        # =================================================
 
-        session["email"] = message
-
-        session["registration_step"] = "phone"
-
-
-        response_text = (
-            "📧 <b>Email saved!</b>"
-            "<br><br>"
-            "Now please enter your phone number."
-        )
-
-
-        save_chat_message(
-            "user",
-            message
-        )
-
-        save_chat_message(
-            "assistant",
-            response_text
-        )
-
-
-        return jsonify({
-            "response": response_text
-        })
-
-
-    # =====================================================
-    # PHONE
-    # =====================================================
-
-    if registration_step == "phone":
-
-        if not valid_phone(message):
+        if (
+            "what courses" in text
+            or
+            "which courses" in text
+            or
+            "available courses" in text
+            or
+            "courses available" in text
+            or
+            "list of courses" in text
+            or
+            text in [
+                "courses",
+                "course"
+            ]
+        ):
 
             response_text = (
-                "📱 <b>Please enter a valid phone number.</b>"
+                "📚 <b>Here are the available courses:</b>"
                 "<br><br>"
-                "Example: <b>9876543210</b>"
+
+                "🤖 <b>AI & Machine Learning</b>"
+                "<br>"
+                "Learn Artificial Intelligence, "
+                "Machine Learning and Deep Learning."
+                "<br><br>"
+
+                "📊 <b>Data Science</b>"
+                "<br>"
+                "Learn data analysis, statistics, "
+                "visualization and machine learning."
+                "<br><br>"
+
+                "🐍 <b>Python Programming</b>"
+                "<br>"
+                "Learn Python programming and "
+                "build useful applications."
+                "<br><br>"
+
+                "🌐 <b>Web Development</b>"
+                "<br>"
+                "Learn HTML, CSS, JavaScript and "
+                "web application development."
+                "<br><br>"
+
+                "😊 <b>Which course would you like "
+                "to know more about?</b>"
             )
 
             save_chat_message(
@@ -661,51 +1136,120 @@ def chat():
                 "response": response_text
             })
 
+        # =================================================
+        # START REGISTRATION
+        # =================================================
 
-        phone = re.sub(
-            r"\D",
-            "",
-            message
-        )
+        if (
+            text == "register"
+            or
+            text == "registration"
+            or
+            text == "registration guide"
+            or
+            "i want to register" in text
+            or
+            "start registration" in text
+        ):
 
-        session["phone"] = phone
+            # Clear previous registration data
 
-        session["registration_step"] = "college"
+            session.pop(
+                "name",
+                None
+            )
 
+            session.pop(
+                "email",
+                None
+            )
 
-        response_text = (
-            "📱 <b>Phone number saved!</b>"
-            "<br><br>"
-            "What is the name of your college?"
-        )
+            session.pop(
+                "phone",
+                None
+            )
 
+            session.pop(
+                "college",
+                None
+            )
 
-        save_chat_message(
-            "user",
-            message
-        )
+            session.pop(
+                "course",
+                None
+            )
 
-        save_chat_message(
-            "assistant",
-            response_text
-        )
+            session[
+                "registration_step"
+            ] = "name"
 
-
-        return jsonify({
-            "response": response_text
-        })
-
-
-    # =====================================================
-    # COLLEGE
-    # =====================================================
-
-    if registration_step == "college":
-
-        if len(message) < 2:
+            save_chat_message(
+                "user",
+                message
+            )
 
             response_text = (
-                "🎓 Please enter your college name."
+                "📝 <b>Let's start your registration!</b>"
+                "<br><br>"
+                "What is your full name?"
+            )
+
+            save_chat_message(
+                "assistant",
+                response_text
+            )
+
+            return jsonify({
+                "response": response_text
+            })
+
+        # =================================================
+        # REGISTRATION STEP
+        # =================================================
+
+        registration_step = session.get(
+            "registration_step"
+        )
+
+        # =================================================
+        # NAME
+        # =================================================
+
+        if registration_step == "name":
+
+            if len(message) < 2:
+
+                response_text = (
+                    "😊 Please enter your full name."
+                )
+
+                save_chat_message(
+                    "user",
+                    message
+                )
+
+                save_chat_message(
+                    "assistant",
+                    response_text
+                )
+
+                return jsonify({
+                    "response": response_text
+                })
+
+            session[
+                "name"
+            ] = message
+
+            session[
+                "registration_step"
+            ] = "email"
+
+            response_text = (
+                f"Nice to meet you, "
+                f"<b>{message}</b>! 😊"
+                "<br><br>"
+                "What is your email address?"
             )
 
             save_chat_message(
@@ -722,60 +1266,163 @@ def chat():
                 "response": response_text
             })
 
+        # =================================================
+        # EMAIL
+        # =================================================
 
-        session["college"] = message
+        if registration_step == "email":
 
-        session["registration_step"] = "course"
+            if not valid_email(message):
 
+                response_text = (
+                    "📧 <b>Please enter a valid email.</b>"
+                    "<br><br>"
+                    "Example: <b>student@gmail.com</b>"
+                )
 
-        response_text = (
-            "🎓 <b>Great!</b>"
-            "<br><br>"
-            "Which course are you interested in?"
-            "<br><br>"
-            "🤖 AI & Machine Learning"
-            "<br>"
-            "📊 Data Science"
-            "<br>"
-            "🐍 Python Programming"
-            "<br>"
-            "🌐 Web Development"
-            "<br><br>"
-            "Please type the course name."
-        )
+                save_chat_message(
+                    "user",
+                    message
+                )
 
+                save_chat_message(
+                    "assistant",
+                    response_text
+                )
 
-        save_chat_message(
-            "user",
-            message
-        )
+                return jsonify({
+                    "response": response_text
+                })
 
-        save_chat_message(
-            "assistant",
-            response_text
-        )
+            session[
+                "email"
+            ] = message
 
-
-        return jsonify({
-            "response": response_text
-        })
-
-
-    # =====================================================
-    # COURSE
-    # =====================================================
-
-    if registration_step == "course":
-
-        selected_course = detect_course(
-            message
-        )
-
-
-        if selected_course is None:
+            session[
+                "registration_step"
+            ] = "phone"
 
             response_text = (
-                "🎓 <b>Please choose one of these courses:</b>"
+                "📧 <b>Email saved!</b>"
+                "<br><br>"
+                "Now enter your phone number."
+            )
+
+            save_chat_message(
+                "user",
+                message
+            )
+
+            save_chat_message(
+                "assistant",
+                response_text
+            )
+
+            return jsonify({
+                "response": response_text
+            })
+
+        # =================================================
+        # PHONE
+        # =================================================
+
+        if registration_step == "phone":
+
+            if not valid_phone(message):
+
+                response_text = (
+                    "📱 <b>Please enter a valid "
+                    "phone number.</b>"
+                    "<br><br>"
+                    "Example: <b>9876543210</b>"
+                )
+
+                save_chat_message(
+                    "user",
+                    message
+                )
+
+                save_chat_message(
+                    "assistant",
+                    response_text
+                )
+
+                return jsonify({
+                    "response": response_text
+                })
+
+            phone = re.sub(
+                r"\D",
+                "",
+                message
+            )
+
+            session[
+                "phone"
+            ] = phone
+
+            session[
+                "registration_step"
+            ] = "college"
+
+            response_text = (
+                "📱 <b>Phone number saved!</b>"
+                "<br><br>"
+                "What is your college name?"
+            )
+
+            save_chat_message(
+                "user",
+                message
+            )
+
+            save_chat_message(
+                "assistant",
+                response_text
+            )
+
+            return jsonify({
+                "response": response_text
+            })
+
+        # =================================================
+        # COLLEGE
+        # =================================================
+
+        if registration_step == "college":
+
+            if len(message) < 2:
+
+                response_text = (
+                    "🎓 Please enter your college name."
+                )
+
+                save_chat_message(
+                    "user",
+                    message
+                )
+
+                save_chat_message(
+                    "assistant",
+                    response_text
+                )
+
+                return jsonify({
+                    "response": response_text
+                })
+
+            session[
+                "college"
+            ] = message
+
+            session[
+                "registration_step"
+            ] = "course"
+
+            response_text = (
+                "🎓 <b>Great!</b>"
+                "<br><br>"
+                "Which course are you interested in?"
                 "<br><br>"
                 "🤖 AI & Machine Learning"
                 "<br>"
@@ -785,9 +1432,8 @@ def chat():
                 "<br>"
                 "🌐 Web Development"
                 "<br><br>"
-                "Example: <b>Data Science</b>"
+                "Please type the course name."
             )
-
 
             save_chat_message(
                 "user",
@@ -799,127 +1445,200 @@ def chat():
                 response_text
             )
 
-
             return jsonify({
                 "response": response_text
             })
 
+        # =================================================
+        # COURSE
+        # =================================================
 
-        session["course"] = selected_course
+        if registration_step == "course":
 
-        save_registration()
+            selected_course = detect_course(
+                message
+            )
 
+            if selected_course is None:
 
-        name = session.get("name")
-        email = session.get("email")
-        phone = session.get("phone")
-        college = session.get("college")
+                response_text = (
+                    "🎓 <b>Please choose one of these courses:</b>"
+                    "<br><br>"
+                    "🤖 AI & Machine Learning"
+                    "<br>"
+                    "📊 Data Science"
+                    "<br>"
+                    "🐍 Python Programming"
+                    "<br>"
+                    "🌐 Web Development"
+                )
 
+                save_chat_message(
+                    "user",
+                    message
+                )
 
-        session["registration_step"] = "completed"
+                save_chat_message(
+                    "assistant",
+                    response_text
+                )
 
+                return jsonify({
+                    "response": response_text
+                })
 
-        response_text = (
-            "🎉 <b>REGISTRATION SUCCESSFUL!</b>"
-            "<br><br>"
-            "Thank you for registering with "
-            "<b>UniAssist AI</b>! 🤖"
-            "<br><br>"
-            f"👤 <b>Name:</b> {name}"
-            "<br>"
-            f"📧 <b>Email:</b> {email}"
-            "<br>"
-            f"📱 <b>Phone:</b> {phone}"
-            "<br>"
-            f"🎓 <b>College:</b> {college}"
-            "<br>"
-            f"📚 <b>Course:</b> {selected_course}"
-            "<br><br>"
-            "✅ <b>Your registration has been saved "
-            "successfully.</b>"
-        )
+            # ---------------------------------------------
+            # SAVE COURSE
+            # ---------------------------------------------
 
+            session[
+                "course"
+            ] = selected_course
+
+            # ---------------------------------------------
+            # SAVE REGISTRATION
+            # ---------------------------------------------
+
+            registration = save_registration()
+
+            name = session.get(
+                "name"
+            )
+
+            email = session.get(
+                "email"
+            )
+
+            phone = session.get(
+                "phone"
+            )
+
+            college = session.get(
+                "college"
+            )
+
+            session[
+                "registration_step"
+            ] = "completed"
+
+            response_text = (
+                "🎉 <b>REGISTRATION SUCCESSFUL!</b>"
+                "<br><br>"
+
+                "Thank you for registering with "
+                "<b>UniAssist AI</b>! 🤖"
+                "<br><br>"
+
+                f"👤 <b>Name:</b> {name}"
+                "<br>"
+
+                f"📧 <b>Email:</b> {email}"
+                "<br>"
+
+                f"📱 <b>Phone:</b> {phone}"
+                "<br>"
+
+                f"🎓 <b>College:</b> {college}"
+                "<br>"
+
+                f"📚 <b>Course:</b> {selected_course}"
+                "<br><br>"
+
+                "✅ <b>Your registration has been "
+                "saved successfully.</b>"
+            )
+
+            save_chat_message(
+                "user",
+                message
+            )
+
+            save_chat_message(
+                "assistant",
+                response_text
+            )
+
+            return jsonify({
+                "response": response_text,
+                "registration": registration
+            })
+
+        # =================================================
+        # NORMAL AI CHAT
+        # =================================================
 
         save_chat_message(
             "user",
             message
         )
 
-        save_chat_message(
-            "assistant",
-            response_text
+        answer = get_ai_response(
+            message
         )
 
+        save_chat_message(
+            "assistant",
+            answer
+        )
 
         return jsonify({
-            "response": response_text
+            "response": answer
         })
-
-
-    # =====================================================
-    # NORMAL AI CHAT
-    # =====================================================
-
-    save_chat_message(
-        "user",
-        message
-    )
-
-
-    answer = get_ai_response(
-        message
-    )
-
-
-    save_chat_message(
-        "assistant",
-        answer
-    )
-
-
-    return jsonify({
-        "response": answer
-    })
-
-
-# =========================================================
-# CLEAR CHAT HISTORY
-# =========================================================
-
-@app.route("/clear-history", methods=["POST"])
-def clear_history():
-
-    try:
-
-        with open(
-            CHAT_HISTORY_FILE,
-            "w"
-        ) as file:
-
-            json.dump(
-                [],
-                file,
-                indent=4
-            )
-
-
-        return jsonify({
-            "success": True,
-            "message": "Chat history cleared."
-        })
-
 
     except Exception as error:
 
         print(
-            "CLEAR HISTORY ERROR:",
+            "CHAT ERROR:",
             error
         )
 
         return jsonify({
-            "success": False,
-            "message": "Could not clear history."
-        })
+            "response":
+                "⚠️ Something went wrong on the server."
+        }), 500
+
+
+# =========================================================
+# RESET SESSION
+# =========================================================
+
+@app.route(
+    "/reset"
+)
+def reset():
+
+    session.clear()
+
+    return redirect("/")
+
+
+# =========================================================
+# HEALTH CHECK
+# =========================================================
+
+@app.route(
+    "/health"
+)
+@app.route(
+    "/api/health"
+)
+def health():
+
+    return jsonify({
+
+        "status": "online",
+
+        "application": "UniAssist AI",
+
+        "ollama": "enabled",
+
+        "courses": len(COURSES),
+
+        "admin_system": "enabled",
+
+        "user_chat_history": "enabled"
+
+    })
 
 
 # =========================================================
@@ -928,6 +1647,65 @@ def clear_history():
 
 if __name__ == "__main__":
 
+    print()
+    print(
+        "=========================================="
+    )
+
+    print(
+        "          UniAssist AI Server"
+    )
+
+    print(
+        "=========================================="
+    )
+
+    print(
+        "Server:"
+    )
+
+    print(
+        "http://127.0.0.1:5000"
+    )
+
+    print()
+
+    print(
+        "Admin username: admin"
+    )
+
+    print(
+        "Admin password: admin123"
+    )
+
+    print()
+
+    print(
+        "Normal user:"
+    )
+
+    print(
+        "http://127.0.0.1:5000/"
+    )
+
+    print()
+
+    print(
+        "Admin registrations:"
+    )
+
+    print(
+        "http://127.0.0.1:5000/registrations"
+    )
+
+    print(
+        "=========================================="
+    )
+
+    print()
+
     app.run(
+        host="0.0.0.0",
+        port=5000,
         debug=True
     )

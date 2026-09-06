@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>My Registration - UniAssist AI</title>
+
+</head>
+
+<body>
+
+<h1>📝 My Registration</h1>
+
+<a href="/">💬 Chat</a>
+&nbsp;&nbsp;
+<a href="/history">📜 My Chat History</a>
+&nbsp;&nbsp;
+<a href="/logout">🚪 Logout</a>
+
+<hr>
+
+{% if registrations %}
+
+    {% for registration in registrations %}
+
+        <h2>Registration #{{ registration.id }}</h2>
+
+        <p>
+            <b>Name:</b>
+            {{ registration.name }}
+        </p>
+
+        <p>
+            <b>Email:</b>
+            {{ registration.email }}
+        </p>
+
+        <p>
+            <b>Phone:</b>
+            {{ registration.phone }}
+        </p>
+
+        <p>
+            <b>College:</b>
+            {{ registration.college }}
+        </p>
+
+        <p>
+            <b>Course:</b>
+            {{ registration.course }}
+        </p>
+
+        <p>
+            <b>Registered:</b>
+            {{ registration.registered_at }}
+        </p>
+
+        <hr>
+
+    {% endfor %}
+
+{% else %}
+
+    <h3>📭 You haven't registered yet.</h3>
+
+    <a href="/">
+        Start registration
+    </a>
+
+{% endif %}
+
+</body>
+</html>

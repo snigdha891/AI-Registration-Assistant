@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>UniAssist AI - Admin Dashboard</title>
+
+</head>
+
+<body>
+
+<h1>👑 UniAssist AI Admin Dashboard</h1>
+
+<a href="/logout">🚪 Logout</a>
+
+<hr>
+
+<h2>📊 Statistics</h2>
+
+<p>
+    👥 Students:
+    <b>{{ statistics.students }}</b>
+</p>
+
+<p>
+    📝 Registrations:
+    <b>{{ statistics.registrations }}</b>
+</p>
+
+<p>
+    📚 Courses:
+    <b>{{ statistics.courses }}</b>
+</p>
+
+<p>
+    💬 Chat Messages:
+    <b>{{ statistics.messages }}</b>
+</p>
+
+<hr>
+
+<h2>👥 All Student Registrations</h2>
+
+{% if registrations %}
+
+<table border="1" cellpadding="10">
+
+<tr>
+
+    <th>ID</th>
+
+    <th>Name</th>
+
+    <th>Email</th>
+
+    <th>Phone</th>
+
+    <th>College</th>
+
+    <th>Course</th>
+
+    <th>Registered At</th>
+
+</tr>
+
+
+{% for registration in registrations %}
+
+<tr>
+
+    <td>
+        {{ registration.id }}
+    </td>
+
+    <td>
+        {{ registration.name }}
+    </td>
+
+    <td>
+        {{ registration.email }}
+    </td>
+
+    <td>
+        {{ registration.phone }}
+    </td>
+
+    <td>
+        {{ registration.college }}
+    </td>
+
+    <td>
+        {{ registration.course }}
+    </td>
+
+    <td>
+        {{ registration.registered_at }}
+    </td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+{% else %}
+
+<p>
+    📭 No registrations yet.
+</p>
+
+{% endif %}
+
+</body>
+
+</html>

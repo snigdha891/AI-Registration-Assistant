@@ -1,173 +1,239 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html>
 
-    <title>Registrations - UniAssist AI</title>
+<head>
+
+    <title>UniAssist AI - Registrations</title>
 
     <style>
+
         body {
             margin: 0;
             font-family: Arial, sans-serif;
-            background: #f5f3ff;
-            padding: 40px;
+            background: #f4efff;
+        }
+
+        .header {
+            background: linear-gradient(
+                135deg,
+                #46128c,
+                #8d3ff2
+            );
+
+            color: white;
+            padding: 25px;
+        }
+
+        .header h1 {
+            margin: 0;
         }
 
         .container {
-            max-width: 1100px;
-            margin: auto;
+            padding: 30px;
         }
 
-        h1 {
-            color: #6c2bd9;
-            margin-bottom: 10px;
-        }
-
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-        }
-
-        .registration-card {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 25px rgba(108, 43, 217, 0.12);
-            border-left: 6px solid #7b2ff7;
-        }
-
-        .registration-card h2 {
-            color: #6c2bd9;
-            margin-top: 0;
-        }
-
-        .info {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        .info-box {
-            background: #f8f6ff;
-            padding: 15px;
-            border-radius: 12px;
-        }
-
-        .label {
-            font-weight: bold;
-            color: #6c2bd9;
-        }
-
-        .value {
-            color: #333;
-            margin-top: 5px;
-        }
-
-        .back-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #7b2ff7, #f107a3);
-            color: white;
-            padding: 12px 20px;
+        .admin-badge {
+            background: #fff1b8;
+            color: #765800;
+            padding: 10px 15px;
             border-radius: 10px;
-            text-decoration: none;
-            margin-bottom: 25px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .student-badge {
+            background: #e3d5ff;
+            color: #542099;
+            padding: 10px 15px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            margin-top: 20px;
+            border-radius: 18px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
         }
 
         .empty {
             background: white;
             padding: 30px;
             border-radius: 15px;
-            text-align: center;
-            color: #666;
+            margin-top: 20px;
+            color: #777;
         }
 
-        @media (max-width: 700px) {
-            .info {
-                grid-template-columns: 1fr;
-            }
-
-            body {
-                padding: 20px;
-            }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
         }
+
+        th {
+            background: #6323b5;
+            color: white;
+            padding: 14px;
+            text-align: left;
+        }
+
+        td {
+            padding: 14px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:hover {
+            background: #faf7ff;
+        }
+
+        .back {
+            display: inline-block;
+            margin-top: 25px;
+            text-decoration: none;
+            background: #7029c9;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+        }
+
+        .logout {
+            display: inline-block;
+            margin-top: 25px;
+            margin-left: 10px;
+            text-decoration: none;
+            background: #d93025;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+        }
+
     </style>
+
 </head>
 
 <body>
 
-<div class="container">
+<div class="header">
 
-    <a href="/" class="back-button">← Back to AI Assistant</a>
+    <h1>📋 Registrations</h1>
 
-    <h1>📋 Student Registrations</h1>
+    {% if is_admin %}
 
-    <p class="subtitle">
-        View all registrations saved in UniAssist AI.
-    </p>
-
-    {% if registrations %}
-
-        {% for registration in registrations %}
-
-        <div class="registration-card">
-
-            <h2>🎓 Registration {{ loop.index }}</h2>
-
-            <div class="info">
-
-                <div class="info-box">
-                    <div class="label">👤 Name</div>
-                    <div class="value">
-                        {{ registration.name }}
-                    </div>
-                </div>
-
-                <div class="info-box">
-                    <div class="label">📧 Email</div>
-                    <div class="value">
-                        {{ registration.email }}
-                    </div>
-                </div>
-
-                <div class="info-box">
-                    <div class="label">📱 Phone</div>
-                    <div class="value">
-                        {{ registration.phone }}
-                    </div>
-                </div>
-
-                <div class="info-box">
-                    <div class="label">🎓 College / University</div>
-                    <div class="value">
-                        {{ registration.college }}
-                    </div>
-                </div>
-
-                <div class="info-box">
-                    <div class="label">📚 Course</div>
-                    <div class="value">
-                        {{ registration.course }}
-                    </div>
-                </div>
-
-            </div>
-
+        <div class="admin-badge">
+            👑 ADMIN MODE — You can see all registrations
         </div>
-
-        {% endfor %}
 
     {% else %}
 
-        <div class="empty">
-            <h2>📭 No registrations yet</h2>
-            <p>Complete a registration through the AI Assistant.</p>
+        <div class="student-badge">
+            👤 STUDENT MODE — You can see only your registration
         </div>
 
     {% endif %}
 
 </div>
 
+
+<div class="container">
+
+    {% if registrations %}
+
+        <table>
+
+            <tr>
+
+                <th>Name</th>
+
+                <th>Email</th>
+
+                <th>Phone</th>
+
+                <th>College</th>
+
+                <th>Course</th>
+
+                {% if is_admin %}
+                    <th>Registered At</th>
+                {% endif %}
+
+            </tr>
+
+
+            {% for registration in registrations %}
+
+            <tr>
+
+                <td>
+                    {{ registration.name }}
+                </td>
+
+                <td>
+                    {{ registration.email }}
+                </td>
+
+                <td>
+                    {{ registration.phone }}
+                </td>
+
+                <td>
+                    {{ registration.college }}
+                </td>
+
+                <td>
+                    {{ registration.course }}
+                </td>
+
+                {% if is_admin %}
+
+                <td>
+                    {{ registration.created_at }}
+                </td>
+
+                {% endif %}
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    {% else %}
+
+        <div class="empty">
+
+            {% if is_admin %}
+
+                👑 No students have registered yet.
+
+            {% else %}
+
+                📋 You have not completed a registration yet.
+
+            {% endif %}
+
+        </div>
+
+    {% endif %}
+
+
+    <a href="/" class="back">
+        ← Back to UniAssist AI
+    </a>
+
+
+    {% if is_admin %}
+
+        <a href="/admin-logout" class="logout">
+            🚪 Admin Logout
+        </a>
+
+    {% endif %}
+
+</div>
+
 </body>
+
 </html>
